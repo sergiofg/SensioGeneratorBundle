@@ -163,6 +163,7 @@ EOT
                 );
             }
 
+            $output->writeln(array('', $this->getHelper('formatter')->formatBlock(sprintf('Generating CRUD for entity %s', $entity), 'bg=blue;fg=white', true), ''));
         } else {
             // namespace
             $output->writeln(array(
@@ -232,7 +233,7 @@ EOT
 
     protected function getEntitiesList()
     {
-        $entityManager = $this->getContainer()->get('doctrine')->getManager();
+        $entityManager = $this->getContainer()->get('doctrine.orm.entity_manager');
         $entityClassNames = $entityManager->getConfiguration()
                                       ->getMetadataDriverImpl()
                                       ->getAllClassNames();
@@ -245,10 +246,15 @@ EOT
         }
 
         $entityShortNames = array();
+        $namespacesMap = $entityManager->getConfiguration()->getEntityNamespaces();
         foreach ($entityClassNames as $entityClassName) {
-            $path = explode('\Entity\\', $entityClassName);
-            $shortName = str_replace('\\', '', $path[0]).':'.$path[1];
-            $entityShortNames[] = $shortName;
+            foreach ($namespacesMap as $alias => $namespace) {
+                if (false !== strpos($entityClassName, $namespace)) {
+                    $shortNotationBundleNamespace = $alias;
+                    $entityShortNamespaceLessName = str_replace($namespace . '\\', '', $entityClassName);
+                    $entityShortNames[] = $shortNotationBundleNamespace . ':' . $entityShortNamespaceLessName;
+                }
+            }
         }
 
         return $entityShortNames;
