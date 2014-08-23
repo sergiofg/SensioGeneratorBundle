@@ -45,6 +45,7 @@ class GenerateDoctrineCrudCommand extends GenerateDoctrineCommand
                 new InputOption('with-write', '', InputOption::VALUE_NONE, 'Whether or not to generate create, new and delete actions'),
                 new InputOption('format', '', InputOption::VALUE_REQUIRED, 'Use the format for configuration files (php, xml, yml, or annotation)', 'annotation'),
                 new InputOption('overwrite', '', InputOption::VALUE_NONE, 'Do not stop the generation if crud controller already exist, thus overwriting all generated files'),
+                new InputOption('with-list', '', InputOption::VALUE_NONE, 'Whether or not to list entities'),
             ))
             ->setDescription('Generates a CRUD based on a Doctrine entity')
             ->setHelp(<<<EOT
@@ -133,24 +134,56 @@ EOT
         $dialog = $this->getDialogHelper();
         $dialog->writeSection($output, 'Welcome to the Doctrine2 CRUD generator');
 
-        // namespace
+
         $output->writeln(array(
             '',
             'This command helps you generate CRUD controllers and templates.',
             '',
-            'First, you need to give the entity for which you want to generate a CRUD.',
-            'You can give an entity that does not exist yet and the wizard will help',
-            'you defining it.',
-            '',
-            'You must use the shortcut notation like <comment>AcmeBlogBundle:Post</comment>.',
-            '',
         ));
 
-        if ($input->hasArgument('entity') && $input->getArgument('entity') != '') {
-            $input->setOption('entity', $input->getArgument('entity'));
+        $entityShortNames = $this->getEntitiesList();
+
+        $withList = $input->getOption('with-list');
+        if ($withList) {
+            $output->writeln(sprintf("Found <info>%d</info> mapped entities:", count($entityShortNames)));
+
+            $counter = 0;
+            foreach ($entityShortNames as $entityShortName) {
+                $output->writeln(sprintf("<info>[%d]</info>   %s", $counter, $entityShortName));
+
+                $counter++;
+            }
+
+            $entityNumber = $dialog->ask($output, 'Choose entity number:');
+            if (array_key_exists($entityNumber, $entityShortNames)) {
+                $entity = $entityShortNames[$entityNumber];
+            } else {
+                throw new \Exception(
+                    'Invalid Option. '
+                );
+            }
+
+        } else {
+            // namespace
+            $output->writeln(array(
+                '',
+                'This command helps you generate CRUD controllers and templates.',
+                '',
+                'First, you need to give the entity for which you want to generate a CRUD.',
+                'You can give an entity that does not exist yet and the wizard will help',
+                'you defining it.',
+                '',
+                'You must use the shortcut notation like <comment>AcmeBlogBundle:Post</comment>.',
+                '',
+            ));
+
+            if ($input->hasArgument('entity') && $input->getArgument('entity') != '') {
+                $input->setOption('entity', $input->getArgument('entity'));
+            }
+
+            $entity = $dialog->askAndValidate($output, $dialog->getQuestion('The Entity shortcut name', $input->getOption('entity')), array('Sensio\Bundle\GeneratorBundle\Command\Validators', 'validateEntityName'), false, $input->getOption('entity'));
         }
 
-        $entity = $dialog->askAndValidate($output, $dialog->getQuestion('The Entity shortcut name', $input->getOption('entity')), array('Sensio\Bundle\GeneratorBundle\Command\Validators', 'validateEntityName'), false, $input->getOption('entity'));
         $input->setOption('entity', $entity);
         list($bundle, $entity) = $this->parseShortcutNotation($entity);
 
@@ -195,6 +228,30 @@ EOT
             sprintf("using the \"<info>%s</info>\" format.", $format),
             '',
         ));
+    }
+
+    protected function getEntitiesList()
+    {
+        $entityManager = $this->getContainer()->get('doctrine')->getManager();
+        $entityClassNames = $entityManager->getConfiguration()
+                                      ->getMetadataDriverImpl()
+                                      ->getAllClassNames();
+
+        if (!$entityClassNames) {
+            throw new \Exception(
+                'You do not have any mapped Doctrine ORM entities according to the current configuration. '.
+                'If you have entities or mapping files you should check your mapping configuration for errors.'
+            );
+        }
+
+        $entityShortNames = array();
+        foreach ($entityClassNames as $entityClassName) {
+            $path = explode('\Entity\\', $entityClassName);
+            $shortName = str_replace('\\', '', $path[0]).':'.$path[1];
+            $entityShortNames[] = $shortName;
+        }
+
+        return $entityShortNames;
     }
 
     /**
