@@ -134,7 +134,6 @@ EOT
         $dialog = $this->getDialogHelper();
         $dialog->writeSection($output, 'Welcome to the Doctrine2 CRUD generator');
 
-
         $output->writeln(array(
             '',
             'This command helps you generate CRUD controllers and templates.',
@@ -145,6 +144,11 @@ EOT
 
         $withList = $input->getOption('with-list');
         if ($withList) {
+            $output->writeln(array(
+                'First, you need to give the entity for which you want to generate a CRUD.',
+                ''
+            ));
+
             $output->writeln(sprintf("Found <info>%d</info> mapped entities:", count($entityShortNames)));
 
             $counter = 0;
@@ -154,7 +158,8 @@ EOT
                 $counter++;
             }
 
-            $entityNumber = $dialog->ask($output, 'Choose entity number:');
+            $output->writeln('');
+            $entityNumber = $dialog->ask($output, 'Enter the number of the entity from the list above:');
             if (array_key_exists($entityNumber, $entityShortNames)) {
                 $entity = $entityShortNames[$entityNumber];
             } else {
@@ -167,9 +172,6 @@ EOT
         } else {
             // namespace
             $output->writeln(array(
-                '',
-                'This command helps you generate CRUD controllers and templates.',
-                '',
                 'First, you need to give the entity for which you want to generate a CRUD.',
                 'You can give an entity that does not exist yet and the wizard will help',
                 'you defining it.',
