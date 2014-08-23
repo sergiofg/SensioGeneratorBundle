@@ -235,7 +235,7 @@ EOT
 
     protected function getEntitiesList()
     {
-        $entityManager = $this->getContainer()->get('doctrine.orm.entity_manager');
+        $entityManager = $this->getContainer()->get('doctrine')->getManager();
         $entityClassNames = $entityManager->getConfiguration()
                                       ->getMetadataDriverImpl()
                                       ->getAllClassNames();
