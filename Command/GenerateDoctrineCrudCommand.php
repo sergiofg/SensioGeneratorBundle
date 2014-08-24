@@ -235,6 +235,8 @@ EOT
 
     protected function getEntitiesList()
     {
+
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
         $entityManager = $this->getContainer()->get('doctrine')->getManager();
         $entityClassNames = $entityManager->getConfiguration()
                                       ->getMetadataDriverImpl()
@@ -248,13 +250,13 @@ EOT
         }
 
         $entityShortNames = array();
-        $namespacesMap = $entityManager->getConfiguration()->getEntityNamespaces();
+        $entityNamespaceMap = $entityManager->getConfiguration()->getEntityNamespaces();
+
         foreach ($entityClassNames as $entityClassName) {
-            foreach ($namespacesMap as $alias => $namespace) {
+            foreach ($entityNamespaceMap as $shortNotationBundleName => $namespace) {
                 if (false !== strpos($entityClassName, $namespace)) {
-                    $shortNotationBundleNamespace = $alias;
-                    $entityShortNamespaceLessName = str_replace($namespace . '\\', '', $entityClassName);
-                    $entityShortNames[] = $shortNotationBundleNamespace . ':' . $entityShortNamespaceLessName;
+                    $onBundleEntityPath = str_replace($namespace . '\\', '', $entityClassName);
+                    $entityShortNames[] = $shortNotationBundleName . ':' . $onBundleEntityPath;
                 }
             }
         }
